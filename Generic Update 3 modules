@@ -1,0 +1,465 @@
+mail_msg = "id = " + id + "<br>";
+mail_msg = mail_msg + "module = " + module + "<br>";
+mail_msg = mail_msg + "fld = " + fld + "<br>";
+mail_msg = mail_msg + "newval = " + newval + "<br>";
+sendmail
+[
+	from :zoho.adminuserid
+	to :"myemail@gmail.com"
+	subject :"Invoked RestAPI ProductionUpdateFields " + id + " " + module + " " + zoho.currenttime
+	message :mail_msg
+]
+cd1 = zoho.currenttime.toString("yyyy-MM-dd HH:mm:ss");
+currdate = cd1.toTime();
+main_affected_module = "";
+if(module == "Jobs")
+{
+	dealid = id;
+	url = "https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule10/" + id;
+}
+if(module == "Factory_Curtains")
+{
+	fc_crm = zoho.crm.getRecordById("Factory_Curtains",id.tolong());
+	dealid = fc_crm.get("Job_Code").get("id");
+	url = "https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule10/" + id;
+}
+if(module == "Factory_Rollers" || module == "Production")
+{
+	fr_crm = zoho.crm.getRecordById("Factory_Rollers",id.tolong());
+	dealid = fr_crm.get("Job_Code").get("id");
+	url = "https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule4/" + id;
+}
+if(module == "Factory_Others")
+{
+	fo_crm = zoho.crm.getRecordById("Factory_Others",id.tolong());
+	dealid = fo_crm.get("Job_Code").get("id");
+	url = "https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule11/" + id;
+}
+//step 1 get deal
+//dealid = if(fc_crm.get("Job_Name") == null,"",idno.tolong());
+deal = zoho.crm.getRecordById("Deals",dealid.tolong());
+deal_ctype = deal.get("Customer_Type");
+deal_delmeth = deal.get("Type");
+deal_fsn = deal.get("Curtain_Factory_Stage_Notify");
+
+lt = "2000-06-01T00:10:02+10:00";
+LatestDate = lt.todate();
+//info deal;
+info ">>>>>>>>>>>>>>>>>>>> CURTAINS";
+fc_info = zoho.crm.getRelatedRecords("Factory_Curtains_Jobs","Deals",dealid.tolong());
+fc_id = "null";
+for each  rec in fc_info
+{
+	if(rec.get("Created_Time").todate() > LatestDate)
+	{
+		LatestDate = rec.get("Created_Time");
+		fc_id = rec.get("id");
+	}
+}
+info ">>>>>>>>>>>>>>>>>>>> ROLLERS";
+fr_info = zoho.crm.getRelatedRecords("Production_Job_Linked","Deals",dealid.tolong());
+//info fr_info;
+LatestDate = lt.todate();
+fr_id = "null";
+for each  rec in fr_info
+{
+	if(rec.get("Created_Time").todate() > LatestDate)
+	{
+		LatestDate = rec.get("Created_Time");
+		fr_id = rec.get("id");
+	}
+}
+info ">>>>>>>>>>>>>>>>>>>> OTHERS";
+fo_info = zoho.crm.getRelatedRecords("Factory_Others_Jobs","Deals",dealid.tolong());
+//info fr_info;
+LatestDate = lt.todate();
+fo_id = "null";
+for each  rec in fo_info
+{
+	if(rec.get("Created_Time").todate() > LatestDate)
+	{
+		LatestDate = rec.get("Created_Time");
+		fo_id = rec.get("id");
+	}
+}
+info fc_id;
+info fr_id;
+info fo_id;
+info dealid;
+mp_fc = Map();
+mp_fr = Map();
+mp_fo = Map();
+mp_dl = Map();
+mp_dl_notrig = Map();
+if(fld == "Factory_Curtain_Stage" || fld == "Curtain_Stage")
+{
+	mp_fc.put("Factory_Curtain_Stage",newval);
+	mp_fc.put("Curtain_Stage",newval);
+	mp_fr.put("Curtain_Stage",newval);
+	mp_fo.put("Curtain_Stage",newval);
+	//mp_dl.put("Curtain_Stage",newval);
+	mp_dl_notrig.put("Curtain_Stage",newval);
+	if(newval == "Started")
+	{
+		mp_dl.put("Curtain_Start_Date",zoho.currentdate);
+	}
+}
+if(fld == "Curtain_Notes")
+{
+	mp_fc.put("Curtain_Notes",newval);
+	mp_fr.put("Curtain_Notes",newval);
+	mp_fo.put("Curtain_Notes",newval);
+	mp_dl.put("Curtain_Notes",newval);
+}
+if(fld == "Factory_Roller_Stage" || fld == "Roller_Stage" || fld == "Production_Stage")
+{
+	mp_fr.put("Production_Stage",newval);
+	mp_fr.put("Factory_Roller_Stage",newval);
+	mp_fr.put("Roller_Stage",newval);
+	mp_fc.put("Roller_Stage",newval);
+	mp_fo.put("Roller_Stage",newval);
+	//mp_dl.put("Roller_Stage",newval);
+	mp_dl_notrig.put("Roller_Stage",newval);
+	if(newval == "Started")
+	{
+		mp_dl.put("Roller_Start_Date",zoho.currentdate);
+	}
+}
+if(fld == "Roller_Notes")
+{
+	mp_fc.put("Roller_Notes",newval);
+	mp_fr.put("Roller_Notes",newval);
+	mp_fo.put("Roller_Notes",newval);
+	mp_dl.put("Roller_Notes",newval);
+}
+if(fld == "Factory_Other_Stage" || fld == "Other_Stage")
+{
+	mp_fo.put("Factory_Other_Stage",newval);
+	mp_fo.put("Other_Stage",newval);
+	mp_fc.put("Other_Stage",newval);
+	mp_fr.put("Other_Stage",newval);
+	//mp_dl.put("Other_Stage",newval);
+	mp_dl_notrig.put("Other_Stage",newval);
+	if(newval == "Ordered")
+	{
+		mp_dl.put("Other_Order_Date",zoho.currentdate);
+	}
+}
+if(fld == "Other_Notes")
+{
+	mp_fc.put("Other_Notes",newval);
+	mp_fr.put("Other_Notes",newval);
+	mp_fo.put("Other_Notes",newval);
+	mp_dl.put("Other_Notes",newval);
+	info "Other_Notes";
+}
+if(fld == "Curtain_Link")
+{
+	mp_fc.put("Curtain_Link",newval);
+	mp_fr.put("Curtain_Link",newval);
+	mp_fo.put("Curtain_Link",newval);
+	mp_dl.put("Curtain_Link",newval);
+}
+if(fld == "Roller_Link")
+{
+	mp_fc.put("Roller_Link",newval);
+	mp_fr.put("Roller_Link",newval);
+	mp_fo.put("Roller_Link",newval);
+	mp_dl.put("Roller_Link",newval);
+}
+if(fld == "Other_Link")
+{
+	mp_fc.put("Other_Link",newval);
+	mp_fr.put("Other_Link",newval);
+	mp_fo.put("Other_Link",newval);
+	mp_dl.put("Other_Link",newval);
+}
+if(fld == "Job_Stage" && module == "Jobs")
+{
+	mp_fc.put("Job_Stage",newval);
+	mp_fr.put("Job_Stage",newval);
+	mp_fo.put("Job_Stage",newval);
+}
+/*****/
+if(fld == "Curtain_Redo_Description")
+{
+	mp_fc.put("Curtain_Redo_Description",newval);
+	mp_fr.put("Curtain_Redo_Description",newval);
+	mp_fo.put("Curtain_Redo_Description",newval);
+	mp_dl.put("Curtain_Redo_Description",newval);
+}
+if(fld == "Roller_Redo_Description")
+{
+	mp_fc.put("Roller_Redo_Description",newval);
+	mp_fr.put("Roller_Redo_Description",newval);
+	mp_fo.put("Roller_Redo_Description",newval);
+	mp_dl.put("Roller_Redo_Description",newval);
+}
+if(fld == "Other_Redo_Description")
+{
+	mp_fc.put("Other_Redo_Description",newval);
+	mp_fr.put("Other_Redo_Description",newval);
+	mp_fo.put("Other_Redo_Description",newval);
+	mp_dl.put("Other_Redo_Description",newval);
+}
+if(fld == "Curtain_Redo_Reason")
+{
+	newlist1 = list(newval.replaceAll(";",","));
+	//newlist = newval;
+	info ">> New list";
+	info newlist1;
+	mp_fc.put("Curtain_Redo_Reason",newlist1);
+	mp_fr.put("Curtain_Redo_Reason",newlist1);
+	mp_fo.put("Curtain_Redo_Reason",newlist1);
+	mp_dl.put("Curtain_Redo_Reason",newlist1);
+}
+if(fld == "Roller_Redo_Reason")
+{
+	newlist2 = list(newval.replaceAll(";",","));
+	//newlist = newval;
+	info ">> New list";
+	info newlist2;
+	mp_fc.put("Roller_Redo_Reason",newlist2);
+	mp_fr.put("Roller_Redo_Reason",newlist2);
+	mp_fo.put("Roller_Redo_Reason",newlist2);
+	mp_dl.put("Roller_Redo_Reason",newlist2);
+}
+if(fld == "Other_Redo_Reason")
+{
+	newlist3 = list(newval.replaceAll(";",","));
+	//newlist = newval;
+	info ">> New list";
+	info newlist3;
+	mp_fc.put("Other_Redo_Reason",newlist3);
+	mp_fr.put("Other_Redo_Reason",newlist3);
+	mp_fo.put("Other_Redo_Reason",newlist3);
+	mp_dl.put("Other_Redo_Reason",newlist3);
+}
+/*****/
+if(fc_id != "null")
+{
+	upd_fc = zoho.crm.updateRecord("Factory_Curtains",fc_id.tolong(),mp_fc);
+	info "Factory Curtains has been updated";
+	info upd_fc;
+}
+if(fo_id != "null")
+{
+	upd_fo = zoho.crm.updateRecord("Factory_Others",fo_id.tolong(),mp_fo);
+	info ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> upd_fo";
+	info "Factory Others has been updated";
+	info upd_fo;
+}
+if(fr_id != "null")
+{
+	upd_fr = zoho.crm.updateRecord("Factory_Rollers",fr_id.tolong(),mp_fr);
+	info ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> upd_fr";
+	info "Factory Rollers has been updated";
+	info upd_fr;
+}
+if(dealid != "")
+{
+	info "mp_dl >> ";
+	info mp_dl;
+	upd_dl = zoho.crm.updateRecord("Deals",dealid.tolong(),mp_dl,{"trigger":{"workflow","blueprint"}});
+	info "Deal has been updated 1";
+	info "mp_dl_notrig >> ";
+	info mp_dl_notrig;
+	upd_dl2 = zoho.crm.updateRecord("Deals",dealid.tolong(),mp_dl_notrig);
+	info "Deal has been updated 2";
+}
+info "line 274";
+taggy = "";
+tag_factory = "";
+contid = deal.get("Contact_Name").get("id");
+contcrm = zoho.crm.getRecordById("Contacts",contid.tolong());
+fsn = contcrm.get("Factory_Update_Notify");
+fdn = contcrm.get("Factory_Done_Notify");
+// EMAILS SEND TO CUSTOMER
+if(fld.containsIgnoreCase("_Stage"))
+{
+	if(deal_ctype != "Wholesale" && deal_fsn == true)
+	{
+		if(fld == "Factory_Curtain_Stage" || fld == "Curtain_Stage")
+		{
+			if(newval == "Started")
+			{
+				taggy = "Fabrics Arrived";
+			}
+		}
+	}
+	else if(deal_ctype == "Wholesale")
+	{
+		if(fsn == true || fdn == true)
+		{
+			if(fld == "Factory_Roller_Stage" || fld == "Roller_Stage" || fld == "Production_Stage")
+			{
+				if(newval == "Started" && fsn == true)
+				{
+					taggy = "Roller - Started";
+				}
+				else if(newval == "Ordered" && fsn == true)
+				{
+					taggy = "Roller - Ordered";
+				}
+				else if(newval == "Done" && fdn == true)
+				{
+					if(deal_delmeth == "Deliver" || deal_delmeth == "Pick Up" || deal_delmeth == "CM Install")
+					{
+						taggy = "Roller - Done";
+					}
+				}
+			}
+			else if(fld == "Factory_Curtain_Stage" || fld == "Curtain_Stage")
+			{
+				if(newval == "Started" && fsn == true)
+				{
+					taggy = "Curtain - Started";
+				}
+				else if(newval == "Ordered" && fsn == true)
+				{
+					taggy = "Curtain - Ordered";
+				}
+				else if(newval == "Done" && fdn == true)
+				{
+					if(deal_delmeth == "Deliver" || deal_delmeth == "Pick Up" || deal_delmeth == "CM Install")
+					{
+						taggy = "Curtain - Done";
+					}
+				}
+			}
+		}
+	}
+}
+// EMAILS SEND TO SUPPORT
+// TO SUPPORT
+if(fld.containsIgnoreCase("_Stage"))
+{
+	//if(deal_ctype == "Wholesale")
+	if(deal_ctype != "")
+	{
+		if(fld == "Factory_Roller_Stage" || fld == "Roller_Stage" || fld == "Production_Stage")
+		{
+			if(newval == "Redo Done")
+			{
+				tag_factory = "FRoller - Redo Done";
+			}
+			else if(newval == "Done")
+			{
+				tag_factory = "FRoller - Done";
+			}
+		}
+		else if(fld == "Factory_Curtain_Stage" || fld == "Curtain_Stage")
+		{
+			if(newval == "Started")
+			{
+				tag_factory = "FCurtain - Started";
+			}
+			else if(newval == "Redo Done")
+			{
+				tag_factory = "FCurtain - Redo Done";
+			}
+			else if(newval == "Done")
+			{
+				tag_factory = "FCurtain - Done";
+			}
+		}
+		else if(fld == "Factory_Other_Stage" || fld == "Other_Stage")
+		{
+			if(newval == "Redo Done")
+			{
+				tag_factory = "FOther - Redo Done";
+			}
+			else if(newval == "Done")
+			{
+				tag_factory = "FOther - Done";
+			}
+		}
+	}
+}
+
+//if stage is OUT
+
+info fc_id;
+info fr_id;
+info fo_id;
+info dealid;
+
+if(module == "Jobs" &&  dealid != "")
+{
+	get_jobs = zoho.crm.getRecordById("Deals",dealid.tolong());
+	info "GETJOBS >> " + get_jobs;
+	g_rol_v = get_jobs.getjson("Roller");
+	g_rol_s = get_jobs.getjson("Roller_Stage");
+	g_cur_v = get_jobs.getjson("Curtain");
+	g_cur_s = get_jobs.getjson("Curtain_Stage");
+	g_oth_v = get_jobs.getjson("Other");
+	g_oth_s = get_jobs.getjson("Other_Stage");
+}
+if(module == "Factory_Curtains" &&  fc_id != "null")
+{
+	get_fcur = zoho.crm.getRecordById("Factory_Curtains",fc_id.tolong());
+	info "GETCUR >> " + get_fcur;
+	g_rol_v = get_fcur.getjson("Roller");
+	g_rol_s = get_fcur.getjson("Roller_Stage");
+	g_cur_v = get_fcur.getjson("Curtain");
+	g_cur_s = get_fcur.getjson("Curtain_Stage");
+	g_oth_v = get_fcur.getjson("Other");
+	g_oth_s = get_fcur.getjson("Other_Stage");
+	
+}
+if(module == "Factory_Rollers" && fr_id != "null")
+{
+	get_frol = zoho.crm.getRecordById("Factory_Rollers",fr_id.tolong());
+	info "GETROLS >> " + get_frol;
+	g_rol_v = get_frol.getjson("Roller");
+	g_rol_s = get_frol.getjson("Roller_Stage");
+	g_cur_v = get_frol.getjson("Curtain");
+	g_cur_s = get_frol.getjson("Curtain_Stage");
+	g_oth_v = get_frol.getjson("Other");
+	g_oth_s = get_frol.getjson("Other_Stage");
+}
+if(module == "Factory_Others"  && fo_id != "null")
+{
+	get_foth = zoho.crm.getRecordById("Factory_Others",fo_id.tolong());
+	info "GETOTH >> " + get_foth;
+	g_rol_v = get_foth.getjson("Roller");
+	g_rol_s = get_foth.getjson("Roller_Stage");
+	g_cur_v = get_foth.getjson("Curtain");
+	g_cur_s = get_foth.getjson("Curtain_Stage");
+	g_oth_v = get_foth.getjson("Other");
+	g_oth_s = get_foth.getjson("Other_Stage");
+}
+
+If ((( g_rol_v == true && g_rol_s =="Out") || (g_rol_v == false)) && (( g_cur_v == true && g_cur_s =="Out") || (g_cur_v == false)) && (( g_oth_v == true && g_oth_s =="Out") || (g_oth_v == false)))
+{
+	deal_out = zoho.crm.updateRecord("Deals",dealid.tolong(), {"Stage" : "Job Complete"},{"trigger":{"workflow","blueprint"}});
+	info deal_out;
+}
+
+
+
+if(taggy != "")
+{
+	mptag = Map();
+	mptag.put("tag_names",taggy);
+	resptag = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v2/deals/" + dealid + "/actions/add_tags?"
+		type :POST
+		parameters:mptag
+		connection:"myconnection"
+	];
+}
+if(tag_factory != "")
+{
+	ftag = Map();
+	ftag.put("tag_names",tag_factory);
+	fresptag = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v2/deals/" + dealid + "/actions/add_tags?"
+		type :POST
+		parameters:ftag
+		connection:"myconnection"
+	];
+}
+return "Done";
