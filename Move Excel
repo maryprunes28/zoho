@@ -1,0 +1,60 @@
+deal = zoho.crm.getRecordById("Deals",dealId.toLong());
+fileupload = deal.get("Attach_Excel");
+manualurl = deal.get("Temp_Work_Drive");
+if (fileupload!=null){
+	
+	if (deal.get("Stage")=="Paid - Manufacture") 
+	{
+ resp1 = invokeurl
+    [
+    	url: "https://www.zohoapis.com.au/crm/v2/Deals/" + dealId + "/Stage_History"
+    	type: GET    	
+    	connection:"myconnection"
+    ];
+	//info resp1;
+	dat = resp1.get("data");
+	info dat;
+	
+	prob60_dt = null;
+	first40_dt = "2050-12-13".toDateTime();
+	info first40_dt;
+	for each x in dat
+		{
+			if ((x.get("probability") == 60) && (prob60_dt == null))
+			{
+				prob60_dt = x.get("Last_Modified_Time").toDateTime();
+			}
+			info x.get("probability");
+			if ((x.get("probability").toNumber() >= 40) && ( x.get("Last_Modified_Time").toDateTime() <= first40_dt))
+			{
+				first40_dt =  x.get("Last_Modified_Time").toDateTime();
+				//info "less then " + x.get("probability") + " - " +  x.get("Last_Modified_Time") ;
+			}
+
+		}
+		info prob60_dt;
+		info first40_dt;
+	}
+	
+	
+	mp = Map();
+		
+	if ((prob60_dt!=null) || (first40_dt!=null))
+		{
+			mp.put("Excel_Move_Date ",ifnull(prob60_dt,first40_dt));	
+		}
+	
+	if(!fileupload.getJSON("preview_Url").isNull())
+		{
+		prevurl = fileupload.getJSON("preview_Url");
+		if(prevurl.containsIgnoreCase("workdrive.zoho.com.au") && (manualurl.isNull()))
+			{
+			mp.put("Temp_Work_Drive",prevurl);
+			}
+		}
+	
+	updcrm = zoho.crm.updateRecord("Deals",dealId.tolong(),mp);
+	info updcrm;
+}
+
+
