@@ -1,0 +1,330 @@
+deal = zoho.crm.getRecordById("Deals",dealid.tolong());
+job_stg = deal.get("Stage");
+ismanual = deal.get("Manual_Work_Drive");
+manualurl = deal.get("Temp_Work_Drive");
+fileupload = deal.get("Attach_Excel");
+info ismanual;
+info manualurl;
+Errmsg = "Error Processing";
+newid_curtains = "";
+newid_rollers = "";
+newid_others = "";
+ctr_curtains = 0;
+ctr_rollers = 0;
+ctr_others = 0;
+qty_curtains = 0;
+qty_rollers = 0;
+qty_others = 0;
+notes_curtains = "";
+notes_rollers = "";
+notes_others = "";
+if(ismanual == true && manualurl.isNull())
+{
+	Errmsg = "Add workdrive permalink";
+}
+else if(ismanual == true && !manualurl.isNull())
+{
+	if(manualurl.containsIgnoreCase("workdrive.zoho.com.au"))
+	{
+		Errmsg = "";
+		prevurl = manualurl;
+		info prevurl;
+	}
+	else
+	{
+		Errmsg = "File must be in Workdrive";
+	}
+}
+else if(!fileupload.isNull())
+{
+	if(!fileupload.getJSON("preview_Url").isNull())
+	{
+		prevurl = fileupload.getJSON("preview_Url");
+		info prevurl;
+		if(prevurl.containsIgnoreCase("workdrive.zoho.com.au"))
+		{
+			Errmsg = "";
+			info prevurl;
+		}
+		else
+		{
+			Errmsg = "File must be in Workdrive 1";
+		}
+	}
+	else
+	{
+		Errmsg = "File must be in Workdrive 2";
+	}
+}
+else
+{
+	Errmsg = "Excel File Does Not Exists";
+}
+if(Errmsg == "")
+{
+	subinfo = deal.getJSON("Quote2");
+	quote_items = list();
+	curtains_product_items = List();
+	rollers_product_items = List();
+	other_product_items = List();
+	//info subinfo;
+	for each  rec in subinfo
+	{
+		//info rec;
+		//info rec.get("Product_Name").get("id");
+		//info rec.get("Product_Name").get("name");
+		//info rec.get("Qty");
+		f_item = Map();
+		f_item.put("f_id",rec.get("Product_Name").get("id"));
+		f_item.put("f_name",rec.get("Product_Name").get("name"));
+		f_item.put("f_qty",rec.get("Qty"));
+		quote_items.add(f_item);
+	}
+	for each  x in quote_items
+	{
+		proid = x.get("f_id");
+		product = zoho.crm.getRecordById("Products",proid.tolong());
+		info product;
+		proname = product.get("Product_Name");
+		productDesc = ifnull(product.get("Description"),"");
+		producttype = ifnull(product.get("Fabric_Type"),"");
+		productcolor = ifnull(product.get("Fabric_Colour"),"");
+		productcategory = ifnull(product.get("Category"),"");
+		productcollection = ifnull(product.get("Collection"),"");
+		productmanufacturer = ifnull(product.get("Manufacturer"),"");
+		quantity = ifnull(x.get("f_qty"),1);
+		lineitem = Map();
+		lineitem.put("Product_Name",{"name":proname,"id":proid});
+		lineitem.put("Type",producttype);
+		lineitem.put("Colour",productcolor);
+		lineitem.put("Category",productcategory);
+		lineitem.put("Collection",productcollection);
+		lineitem.put("Qty",quantity);
+		curtains_product_items.add(lineitem);
+		rollers_product_items.add(lineitem);
+		other_product_items.add(lineitem);
+		if(productcategory == "Curtains")
+		{
+			//curtains_product_items.add(lineitem);
+			ctr_curtains = ctr_curtains + 1;
+			qty_curtains = qty_curtains + quantity;
+			//notes_curtains = notes_curtains + quantity + " " + productcollection + " " + productcolor + "\n";
+			notes_curtains = notes_curtains + quantity + " " + proname + "\n";
+		}
+		if(productcategory == "Roller Blinds")
+		{
+			//rollers_product_items.add(lineitem);
+			ctr_rollers = ctr_rollers + 1;
+			qty_rollers = qty_rollers + quantity;
+			//notes_rollers = notes_rollers + quantity + " " + productcollection + " " + productcolor + "\n";
+			notes_rollers = notes_rollers + quantity + " " + proname + "\n";
+		}
+		if(productcategory == "Ziptrak" || productcategory == "Other Blinds" || productcategory == "Parts")
+		{
+			//other_product_items.add(lineitem);
+			ctr_others = ctr_others + 1;
+			qty_others = qty_others + quantity;
+			others_item = TRIM(productmanufacturer + " " + productcollection + " " + productcolor);
+			notes_others = notes_others + quantity + " " + if(proname == "",others_item,proname) + "\n";
+		}
+	}
+	////// CURTAINS
+	if(!curtains_product_items.isEmpty() && ctr_curtains > 0)
+	{
+		mp = Map();
+		mp.put("Job_Name",deal.get("id"));
+		mp.put("Name",ifnull(deal.get("Deal_Name"),""));
+		mp.put("Job_Description",ifnull(deal.get("Description"),""));
+		mp.put("Redo_Reason",ifnull(deal.get("Redo_Reason"),""));
+		mp.put("Email",ifnull(deal.get("Customer_Email"),""));
+		mp.put("Factory_Curtain_Stage","New");
+		mp.put("Job_Excel",prevurl);
+		mp.put("Order_Details",curtains_product_items);
+		mp.put("SPB_Sales_Email","sales@spb.com.au");
+		mp.put("SPB_Support_Email","support@spb.com.au");
+		mp.put("Curtain",True);
+		mp.put("Curtain_Stage","New");
+		mp.put("Curtain_Count",qty_curtains);
+		mp.put("Roller_Notes",notes_rollers);
+		mp.put("Curtain_Notes",notes_curtains);
+		mp.put("Other_Notes",notes_others);
+		mp.put("Job_Stage",job_stg);
+		new_curtains = zoho.crm.createRecord("Factory_Curtains",mp,{"trigger":{"workflow","blueprint"}});
+		info new_curtains;
+		newid_curtains = ifnull(new_curtains.get("id"),"");
+		if(newid_curtains == "")
+		{
+			Errmsg = "Error Creating Factory Curtain Record";
+		}
+		else
+		{
+			info "Record Created in Factory Curtain";
+		}
+	}
+	//ROLLERS
+	if(!rollers_product_items.isEmpty() && ctr_rollers > 0)
+	{
+		mp = Map();
+		mp.put("Job_Name",deal.get("id"));
+		mp.put("Name",ifnull(deal.get("Deal_Name"),""));
+		mp.put("Job_Description",ifnull(deal.get("Description"),""));
+		mp.put("Redo_Reason",ifnull(deal.get("Redo_Reason"),""));
+		mp.put("Email",ifnull(deal.get("Customer_Email"),""));
+		mp.put("Factory_Roller_Stage","New");
+		mp.put("Job_Excel",prevurl);
+		mp.put("Production_Details",rollers_product_items);
+		mp.put("SPB_Sales_Email","sales@spb.com.au");
+		mp.put("SPB_Support_Email","support@spb.com.au");
+		mp.put("Roller",True);
+		mp.put("Roller_Stage","New");
+		mp.put("Roller_Count",qty_rollers);
+		mp.put("Roller_Notes",notes_rollers);
+		mp.put("Curtain_Notes",notes_curtains);
+		mp.put("Other_Notes",notes_others);
+		mp.put("Job_Stage",job_stg);
+		new_rollers = zoho.crm.createRecord("Factory_Rollers",mp,{"trigger":{"workflow","blueprint"}});
+		info new_rollers;
+		newid_rollers = ifnull(new_rollers.get("id"),"");
+		if(newid_rollers == "")
+		{
+			Errmsg = "Error Creating Factory Roller Record";
+		}
+		else
+		{
+			info "Record Created in Factory Rollers";
+		}
+	}
+	///OTHERS
+	if(!other_product_items.isEmpty() && ctr_others > 0)
+	{
+		mp = Map();
+		mp.put("Job_Name",deal.get("id"));
+		mp.put("Name",ifnull(deal.get("Deal_Name"),""));
+		mp.put("Job_Description",ifnull(deal.get("Description"),""));
+		mp.put("Redo_Reason",ifnull(deal.get("Redo_Reason"),""));
+		mp.put("Email",ifnull(deal.get("Customer_Email"),""));
+		mp.put("Factory_Other_Stage","New");
+		mp.put("Job_Excel",prevurl);
+		mp.put("Order_Details_Other",other_product_items);
+		mp.put("SPB_Sales_Email","sales@spb.com.au");
+		mp.put("SPB_Support_Email","support@spb.com.au");
+		mp.put("Other",True);
+		mp.put("Other_Stage","New");
+		mp.put("Other_Count",qty_others);
+		mp.put("Roller_Notes",notes_rollers);
+		mp.put("Curtain_Notes",notes_curtains);
+		mp.put("Other_Notes",notes_others);
+		mp.put("Job_Stage",job_stg);
+		new_others = zoho.crm.createRecord("Factory_Others",mp,{"trigger":{"workflow","blueprint"}});
+		info new_others;
+		newid_others = ifnull(new_others.get("id"),"");
+		if(newid_others == "")
+		{
+			Errmsg = "Error Creating Factory Other Record";
+		}
+		else
+		{
+			info "Record Created in Factory Others";
+		}
+	}
+}
+if(Errmsg == "")
+{
+	//notetext = "Record successfully created (IDs : " + newid_curtains + " " + newid_rollers+ " "+newid_others +  ")";
+	stat = "Success";
+}
+else
+{
+	notetext = Errmsg;
+	stat = "Failed";
+}
+if(newid_curtains != "")
+{
+	notesMap = {"Parent_Id":dealid,"Note_Title":"Create Factory Curtains " + stat,"Note_Content":notetext,"$se_module":"Deals"};
+	responsenote = zoho.crm.createRecord("Notes",notesMap);
+	//info notetext;
+	mp = Map();
+	mp.put("Curtain_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule10/" + newid_curtains);
+	if(newid_others != "")
+	{
+		mp.put("Other",True);
+		mp.put("Other_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule11/" + newid_others);
+		mp.put("Other_Stage","New");
+	}
+	if(newid_rollers != "")
+	{
+		mp.put("Roller",True);
+		mp.put("Roller_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule4/" + newid_rollers);
+		mp.put("Roller_Stage","New");
+	}
+	upd_curtains = zoho.crm.updateRecord("Factory_Curtains",newid_curtains.tolong(),mp);
+	info upd_curtains;
+}
+if(newid_others != "")
+{
+	notesMap = {"Parent_Id":dealid,"Note_Title":"Create Factory Others " + stat,"Note_Content":notetext,"$se_module":"Deals"};
+	responsenote = zoho.crm.createRecord("Notes",notesMap);
+	//info notetext;
+	mp = Map();
+	mp.put("Other_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule11/" + newid_others);
+	if(newid_curtains != "")
+	{
+		mp.put("Curtain",True);
+		mp.put("Curtain_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule10/" + newid_curtains);
+		mp.put("Curtain_Stage","New");
+	}
+	if(newid_rollers != "")
+	{
+		mp.put("Roller",True);
+		mp.put("Roller_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule4/" + newid_rollers);
+		mp.put("Roller_Stage","New");
+	}
+	upd_others = zoho.crm.updateRecord("Factory_Others",newid_others.tolong(),mp);
+	info upd_others;
+}
+if(newid_rollers != "")
+{
+	notesMap = {"Parent_Id":dealid,"Note_Title":"Create Factory Rollers " + stat,"Note_Content":notetext,"$se_module":"Deals"};
+	responsenote = zoho.crm.createRecord("Notes",notesMap);
+	//info notetext;
+	mp = Map();
+	mp.put("Roller_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule4/" + newid_rollers);
+	if(newid_curtains != "")
+	{
+		mp.put("Curtain",True);
+		mp.put("Curtain_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule10/" + newid_curtains);
+		mp.put("Curtain_Stage","New");
+	}
+	if(newid_others != "")
+	{
+		mp.put("Other",True);
+		mp.put("Other_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule11/" + newid_others);
+		mp.put("Other_Stage","New");
+	}
+	upd_rollers = zoho.crm.updateRecord("Factory_Rollers",newid_rollers.tolong(),mp);
+	info upd_rollers;
+}
+mp_deal = Map();
+if(newid_curtains != "")
+{
+	mp_deal.put("Curtain",True);
+	mp_deal.put("Curtain_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule10/" + newid_curtains);
+	mp_deal.put("Curtain_Stage","New");
+	mp_deal.put("Curtain_Notes",notes_curtains);
+}
+if(newid_others != "")
+{
+	mp_deal.put("Other",True);
+	mp_deal.put("Other_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule11/" + newid_others);
+	mp_deal.put("Other_Stage","New");
+	mp_deal.put("Other_Notes",notes_others);
+}
+if(newid_rollers != "")
+{
+	mp_deal.put("Roller",True);
+	mp_deal.put("Roller_Link","https://crm.zoho.com.au/crm/orgxxx/tab/CustomModule4/" + newid_rollers);
+	mp_deal.put("Roller_Stage","New");
+	mp_deal.put("Roller_Notes",notes_rollers);
+}
+upd_deals = zoho.crm.updateRecord("Deals",dealid.tolong(),mp_deal);
+return "Done";
