@@ -1,0 +1,109 @@
+//leadid = "14699000003275008";
+leadcrm = zoho.crm.getRecordById("Leads",leadid);
+info leadcrm;
+/*************************/
+/* GET LEAD INFO		 */
+/*************************/
+ld_lat = leadcrm.get("Last_Name");
+ld_mob = leadcrm.get("Mobile");
+ld_ema = leadcrm.get("Email");
+ld_stt = leadcrm.get("Street");
+ld_sta = leadcrm.get("State");
+ld_zip = leadcrm.get("Zip_Code");
+ld_typ = leadcrm.get("Lead_Type");
+ld_rep = if(leadcrm.get("Sales") != NULL,leadcrm.get("Sales").get("id"),NULL);
+ld_des = leadcrm.get("Description");
+ld_lsr = leadcrm.get("Lead_Source");
+ld_osr = leadcrm.get("Online_Source");
+ld_sup = ifnull(leadcrm.get("SPB_Support_Email"),"support@spb.com.au");
+ld_sal = ifnull(leadcrm.get("SPB_Sales_Email"),"sales@spb.com.au");
+/*************************/
+/* CREATE CONTACT RECORD */
+/*************************/
+//contid = "14699000003233187";
+contmap = Map();
+contmap.put("Last_Name",ld_lat);
+contmap.put("Full_Name",ld_lat);
+contmap.put("Mobile",ld_mob);
+contmap.put("Email",ld_ema);
+contmap.put("Mailing_Street",ld_stt);
+contmap.put("Mailing_State",ld_sta);
+contmap.put("Mailing_Zip",ld_zip);
+contmap.put("Contact_Type",ld_typ);
+contmap.put("Rep",ld_rep);
+contmap.put("Description",ld_des);
+contmap.put("Lead_Source",ld_lsr);
+contmap.put("Online_Source",ld_osr);
+contmap.put("SPB_Sales_Email",ld_sal);
+contmap.put("SPB_Support_Email",ld_sup);
+contmap.put("Associated_Lead",leadid);
+contcreate = zoho.crm.createRecord("Contacts",contmap,{"trigger":{"workflow","blueprint","approval"}});
+info "Contact has been Created " + contcreate.get("id");
+//info ">>>>>> contact " + contcreate + " <<<<<<<<<<<<<<";
+newcontid = ifnull(contcreate.get("id"),"");
+if(newcontid != "")
+{
+	notetext = "Contact Created from Leads " + leadid;
+	notesMap = {"Parent_Id":newcontid,"Note_Title":"New Record","Note_Content":notetext,"$se_module":"Contacts"};
+	responsenote = zoho.crm.createRecord("Notes",notesMap);
+	notetext = "New Contact Record has been created. Contact Id " + newcontid + " https://crm.zoho.com.au/crm/org7000171204/tab/Contacts/" + newcontid;
+	notesMap = {"Parent_Id":leadid,"Note_Title":"Contact Record Created","Note_Content":notetext,"$se_module":"Leads"};
+	responsenote = zoho.crm.createRecord("Notes",notesMap);
+}
+if(newcontid != "")
+{
+	/******************************/
+	// Get New COntact Information
+	/******************************/
+	contcrm = zoho.crm.getRecordById("Contacts",newcontid);
+	co_lat = contcrm.get("Last_Name");
+	co_fnm = contcrm.get("Full_Name");
+	co_mob = contcrm.get("Mobile");
+	co_ema = contcrm.get("Email");
+	co_stt = contcrm.get("Mailing_Street");
+	co_sta = contcrm.get("Mailing_State");
+	co_zip = contcrm.get("Mailing_Zip");
+	co_typ = contcrm.get("Contact_Type");
+	co_rep = if(contcrm.get("Rep") != NULL,contcrm.get("Rep").get("id"),NULL);
+	co_des = contcrm.get("Description");
+	co_lsr = contcrm.get("Lead_Source");
+	co_osr = contcrm.get("Online_Source");
+	co_sal = contcrm.get("SPB_Sales_Email");
+	co_sup = contcrm.get("SPB_Support_Email");
+	/*******************************/
+	// Create Job Record //
+	/******************************/
+	dealmap = Map();
+	dealmap.put("Deal_Name",co_lat + "'s Job");
+	dealmap.put("Contact_Name",newcontid);
+	dealmap.put("Customer_Mobile",co_mob);
+	dealmap.put("Customer_Email",co_ema);
+	dealmap.put("Job_Address",co_stt);
+	dealmap.put("Job_State",co_sta);
+	dealmap.put("Job_Postcode",co_zip);
+	dealmap.put("Sales",co_rep);
+	dealmap.put("Stage","New Job");
+	dealmap.put("Customer_Type",co_typ);
+	dealmap.put("Contact_Description",co_des);
+	dealmap.put("Lead_Source",co_lsr);
+	dealmap.put("Online_Source",co_osr);
+	dealmap.put("SPB_Sales_Email",co_sal);
+	dealmap.put("SPB_Support_Email",co_sup);
+	dealmap.put("Associated_Lead",leadid);
+	dealcreate = zoho.crm.createRecord("Deals",dealmap,{"trigger":{"workflow","blueprint","approval"}});
+	info "Deal has been Created " + dealcreate.get("id");
+	newdealid = ifnull(dealcreate.get("id"),"");
+	if(newdealid != "")
+	{
+		notetext = "Job Created from Leads " + leadid;
+		notesMap = {"Parent_Id":newdealid,"Note_Title":"New Record","Note_Content":notetext,"$se_module":"Deals"};
+		responsenote = zoho.crm.createRecord("Notes",notesMap);
+		notetext = "New Job Record has been created. Job Id " + newdealid + " https://crm.zoho.com.au/crm/org7000171204/tab/Potentials/" + newdealid;
+		notesMap = {"Parent_Id":leadid,"Note_Title":"Job Record Created","Note_Content":notetext,"$se_module":"Leads"};
+		responsenote = zoho.crm.createRecord("Notes",notesMap);
+		url = "https://crm.zoho.com.au/crm/org7000171204/tab/Potentials/" + newdealid;
+		openUrl(url,"new window");
+	}
+}
+//url = "https://crm.zoho.com.au/crm/org7000171204/tab/Potentials/" + newdealid;
+//openUrl(url,"new window");
