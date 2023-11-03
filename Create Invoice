@@ -1,0 +1,186 @@
+deal = zoho.crm.getRecordById("Deals",dealId.toLong());
+info deal;
+customer_type = ifnull(deal.get("Customer_Type"),"");
+job_type = ifnull(deal.get("Type"),"");
+apartment = ifnull(deal.get("Apartment_Name"),"");
+apt_name = ifnull(apartment.get("name"),"");
+apt_number = ifnull(deal.get("Apartment_Number"),"");
+apt_address = ifnull(deal.get("Apartment_Address"),"");
+apt_ad = apt_number + "/" + apt_address;
+//
+quote_map = Map();
+/////////////////////////////////////////////////////////////
+// Product List
+/////////////////////////////////////////////////////////////
+discount = ifnull(deal.get("Discount"),0.00);
+sub_total = ifnull(deal.get("Sub_Total"),0.00);
+info "sub_total " + sub_total;
+//New_Total
+info "SUB TOTAL " + sub_total;
+subinfo = deal.GET("Quote2");
+quote_items = list();
+product_items = List();
+for each  rec in subinfo
+{
+	f_item = Map();
+	f_item.put("f_id",rec.get("Product_Name").get("id"));
+	f_item.put("f_name",rec.get("Product_Name").get("name"));
+	f_item.put("f_category",rec.get("Product_Category"));
+	f_item.put("f_qty",rec.get("Qty"));
+	f_item.put("f_itemtot",rec.get("Item_Total"));
+	f_item.put("f_notes",rec.get("Notes"));
+	quote_items.add(f_item);
+	info rec.get("Product_Name").get("id") + " / " + rec.get("Product_Name").get("name") + " / " + rec.get("Product_Category");
+}
+ItemsData = List();
+a = 1;
+s_amt = 0;
+for each  x in quote_items
+{
+	proid = x.get("f_id");
+	product = zoho.crm.getRecordById("Products",proid.tolong());
+	proname = product.get("Product_Name");
+	productDesc = ifnull(product.GET("Description"),"");
+	category = ifnull(product.get("Category"),"");
+	quantity = ifnull(x.get("f_qty"),1);
+	itemtot = ifnull(x.get("f_itemtot"),0);
+	price = itemtot / quantity;
+	price = price.toDecimal();
+	info "price DECIMAL" + price;
+	nts = ifnull(x.get("f_notes"),"");
+	//info ">> productDesc " + productDesc;
+	lineitem = Map();
+	//lineitem.put("product",{"name":proname,"id":proid});
+	lineitem.put("Product_Name",proid);
+	lineitem.put("product_description",productDesc);
+	//lineitem.put("Description",replaceall(productDesc,"\n"," "));
+	lineitem.put("Category",x.get("f_category"));
+	lineitem.put("List_Price",price.truncate(2));
+	lineitem.put("Quantity",quantity);
+	lineitem.put("Total",itemtot);
+	tx = quantity * price.toDecimal() * 0.10;
+	s_amt = s_amt + price.toDecimal() * quantity;
+	product_items.add(lineitem);
+}
+info "discount " + discount;
+quote_map.put("Discount",discount);
+//quote_map.put("Sub_Total",sub_total);
+//quote_map.put("Sub_Total", s_amt);
+//quote_map.put("Product_Details",product_items);
+info "product_items";
+info product_items;
+quote_map.put("Quoted_Items",product_items);
+/////////////////////////////////////////////////////////////
+// Quote Details
+/////////////////////////////////////////////////////////////
+quote_map.put("Subject",ifnull(deal.get("Deal_Name"),""));
+quote_map.put("Sales",ifnull(deal.get("Sales"),""));
+quote_map.put("Delivery_Method",ifnull(deal.get("Type"),""));
+quote_map.put("Tracking_No",ifnull(deal.get("Job_No"),null));
+quote_map.put("Order_No",ifnull(deal.get("Order_No"),null));
+quote_map.put("Description",ifnull(deal.get("Description"),null));
+quote_map.put("Company_Code",ifnull(deal.get("Company_Code"),""));
+quote_map.put("Deal_Name",deal.get("id"));
+//created_date = zoho.currentdate;
+created_date = zoho.currentdate.toString("yyyy-MM-dd");
+quote_map.put("Quote_Date",created_date);
+quote_map.put("Contact_Type",ifnull(deal.get("Customer_Type"),""));
+quote_map.put("Contact_Name",ifnull(deal.get("Contact_Name"),""));
+custmobile = ifnull(deal.get("Customer_Mobile"),"");
+quote_map.put("SPB_Sales_Email","sales@spb.com.au");
+quote_map.put("SPB_Support_Email","support@spb.com.au");
+custmobile = custmobile.remove(" ");
+info "CUST MOBILE = " + custmobile;
+if(custmobile.length() <= 10)
+{
+	quote_map.put("Contact_Mobile",custmobile);
+}
+quote_map.put("Contact_Email",ifnull(deal.get("Customer_Email"),""));
+quote_map.put("Quote_Notes",ifnull(deal.get("Quote_Notes"),""));
+contid = deal.getjson("Contact_Name").get("id");
+contcrm = zoho.crm.getRecordById("Contacts",contid.tolong());
+if(contcrm != null)
+{
+	quote_map.put("Billing_Street",ifnull(contcrm.get("Mailing_Street"),""));
+	quote_map.put("Billing_State",ifnull(contcrm.get("Mailing_State"),""));
+	quote_map.put("Billing_Code",ifnull(contcrm.get("Mailing_Zip"),""));
+}
+if(deal.getjson("Account_Name") != null)
+{
+	compid = deal.getjson("Account_Name").get("id");
+	compcrm = zoho.crm.getRecordById("Accounts",compid.tolong());
+	if(compcrm != null)
+	{
+		quote_map.put("Terms",ifnull(compcrm.get("Terms"),""));
+		quote_map.put("Account_Name",if(deal.get("Account_Name").isNull() || deal.get("Account_Name").isEmpty(),"",deal.get("Account_Name")));
+	}
+}
+/////////////////////////////////////////////////////////////
+// Billing and Shipping Section
+/////////////////////////////////////////////////////////////
+if(job_type == "CM Install" || job_type == "Deliver")
+{
+	quote_map.put("Shipping_Street",deal.get("Job_Address"));
+	quote_map.put("Shipping_State",deal.get("Job_State"));
+	quote_map.put("Shipping_Code",if(deal.get("Job_Postcode").isnull(),"",deal.get("Job_Postcode").toText()));
+}
+else if(job_type == "Pick Up")
+{
+	quote_map.put("Shipping_Street","Pick Up");
+	quote_map.put("Shipping_State",null);
+	quote_map.put("Shipping_Code",null);
+}
+LeadDataList = List();
+LeadDataList.add(quote_map);
+paramsMap = Map();
+paramsMap.put("data",LeadDataList);
+/////////////////////////////////////////////////////////////
+// End Section
+/////////////////////////////////////////////////////////////
+msg = "Error: Quote Not Created ";
+if(!product_items.isEmpty())
+{
+	info "Product is not empty";
+	info product_items;
+	info "XXXXXX";
+	createResp = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v2.1/Quotes"
+		type :POST
+		parameters:paramsMap.toString()
+		connection:"myconnection"
+	];
+	info createResp;
+	newid = "";
+	if(createResp.getjson("data") != null)
+	{
+		newdata = createResp.getjson("data");
+		if(newdata.getjson("code") == "SUCCESS")
+		{
+			newid = newdata.getjson("details").get("id");
+		}
+	}
+	if(newid != "")
+	{
+		url = "https://crm.zoho.com.au/crm/orgxxx/tab/Quotes/" + newid;
+		openUrl(url,"same window");
+		msg = "";
+	}
+	else
+	{
+		msg = "Error: Quote Not Created";
+	}
+}
+info msg;
+if(createResp != null)
+{
+	mail_msg = createResp.tostring();
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"mauspeedylogs@gmail.com"
+		subject :"Create Quote NEW - " + dealId
+		message :mail_msg
+	]
+}
+return msg;
