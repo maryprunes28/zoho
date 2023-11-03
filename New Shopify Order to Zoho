@@ -1,0 +1,281 @@
+body = crmAPIRequest.getJSON("body");
+headers = crmAPIRequest.getJSON("headers");
+sp_request_id = headers.getJSON("lb_request_id");
+sp_confirmation_no = body.getJSON("confirmation_number");
+sp_created_at = body.getJSON("created_at");
+sp_currency = body.getJSON("currency");
+sp_order_id = body.getJSON("id");
+sp_order_name = body.getJSON("name");
+sendmail
+[
+	from :zoho.adminuserid
+	to :"myemail@gmail.com"
+	subject :"STREAM SHOPIFY " + sp_order_name + " " + sp_created_at
+	message :crmAPIRequest
+]
+sp_current_subtotal_price = body.getJSON("current_subtotal_price");
+sp_current_total_discounts = body.getJSON("current_total_discounts");
+sp_current_total_price = body.getJSON("current_total_price");
+sp_email = body.getJSON("email");
+sp_phone = body.getJSON("phone");
+sp_financial_status = body.getJSON("financial_status");
+sp_note = body.getJSON("note");
+sp_total_line_items_price = body.getJSON("total_line_items_price");
+sp_current_total_tax = body.getJSON("current_total_tax");
+has_billing_address = false;
+sp_orderstatus_url = body.getJSON("order_status_url");
+sp_orderstatus_url = sp_orderstatus_url.replaceAll("\\\\","");
+if(body.containsKey("billing_address"))
+{
+	has_billing_address = true;
+	billing = body.getJSON("billing_address");
+	sp_bl_name = IfNull(billing.getJSON("name"),"");
+	sp_bl_phone = IfNull(billing.getJSON("phone"),"");
+	sp_bl_add1 = IfNull(billing.getJSON("address1"),"");
+	sp_bl_add2 = IfNull(billing.getJSON("city"),"");
+	sp_bl_add3 = IfNull(billing.getJSON("province_code"),"");
+	sp_bl_add4 = IfNull(billing.getJSON("zip"),"");
+	sp_bl_add5 = IfNull(billing.getJSON("country_code"),"");
+	sp_bl_company = IfNull(billing.getJSON("company"),"");
+	sp_bl_add = sp_bl_add1 + " " + sp_bl_add2 + " " + sp_bl_add3 + " " + sp_bl_add4 + " " + sp_bl_add5;
+	sp_bl_add = replaceAll(ifnull(sp_bl_add,""),"  "," ");
+}
+else
+{
+	sp_bl_name = "";
+	sp_bl_phone = "";
+	sp_bl_company = "";
+	sp_bl_add = "";
+}
+has_customer = false;
+if(body.containsKey("customer"))
+{
+	has_customer = true;
+	cust = body.getJSON("customer");
+	sp_cust_name = IfNull(cust.getJSON("first_name"),"") + " " + IfNull(cust.getJSON("last_name"),"");
+	sp_cust_phone = IfNull(cust.getJSON("phone"),"");
+	sp_cust_email = IfNull(cust.getJSON("email"),"");
+}
+else
+{
+	sp_cust_name = "";
+	sp_cust_phone = "";
+	sp_cust_email = "";
+}
+has_line_items = false;
+sp_li = list();
+total_qty = 0;
+if(body.containsKey("line_items"))
+{
+	has_line_items = true;
+	lineitems = body.getJSON("line_items");
+	for each  rec in lineitems
+	{
+		li_map = Map();
+		li_map.put("name",IfNull(rec.getJSON("name"),""));
+		li_map.put("price",IfNull(rec.getJSON("price"),""));
+		li_map.put("quantity",IfNull(rec.getJSON("quantity"),0));
+		total_qty = total_qty + toNumber(IfNull(rec.getJSON("quantity"),0));
+		li_map.put("sku",IfNull(rec.getJSON("sku"),""));
+		li_map.put("vendor",IfNull(rec.getJSON("vendor"),""));
+		sp_li.add(li_map);
+	}
+}
+has_payment_terms = false;
+if(body.containsKey("payment_terms"))
+{
+	has_payment_terms = true;
+	payterms = body.getJSON("payment_terms");
+	sp_pt_payment_terms = IfNull(payterms.getJSON("payment_terms_name"),"");
+}
+else
+{
+	sp_pt_payment_terms = "";
+}
+has_shipping_address = false;
+if(body.containsKey("shipping_address"))
+{
+	has_shipping_address = true;
+	ship_add = body.getJSON("shipping_address");
+	sp_sa_name = IfNull(ship_add.getJSON("name"),"");
+	sp_sa_phone = IfNull(ship_add.getJSON("phone"),"");
+	sp_sa_add1 = IfNull(ship_add.getJSON("address1"),"");
+	sp_sa_add2 = IfNull(ship_add.getJSON("city"),"");
+	sp_sa_add3 = IfNull(ship_add.getJSON("province_code"),"");
+	sp_sa_add4 = IfNull(ship_add.getJSON("zip"),"");
+	sp_sa_add5 = IfNull(ship_add.getJSON("country_code"),"");
+	sp_sa_latt = IfNull(ship_add.getJSON("latitude"),"");
+	sp_sa_long = IfNull(ship_add.getJSON("longitude"),"");
+	sp_sa_company = ifnull(ship_add.getJSON("company"),"");
+	sp_sa_add = sp_sa_add1 + " " + sp_sa_add2 + " " + sp_sa_add3 + " " + sp_sa_add4 + " " + sp_sa_add5;
+	sp_sa_add = replaceAll(ifnull(sp_sa_add,""),"  "," ");
+}
+else
+{
+	sp_sa_name = "";
+	sp_sa_phone = "";
+	sp_sa_company = "";
+	sp_sa_add = "";
+}
+has_total_shipping_price_set = false;
+if(body.containsKey("total_shipping_price_set"))
+{
+	has_total_shipping_price_set = true;
+	shfee = body.getJSON("total_shipping_price_set");
+	shfee_shop = IfNull(shfee.getJSON("shop_money"),"");
+	shfee_shop_amt = IfNull(shfee_shop.getJSON("amount"),"0");
+}
+else
+{
+	shfee_shop_amt = 0;
+}
+newLine = hexToText("0A");
+template_resourceid = "9ohc65f19be9c58994659b1024ff5aa798a75";
+resp = zoho.sheet.getSheets(template_resourceid,"myconnection");
+url = "https://www.zohoapis.com.au/workdrive/api/v1/files/9ohc65bad6b3158f747c6bcde7971958a9767/copy";
+attributeMap = Map();
+attributeMap.put("resource_id",template_resourceid);
+attributeMap.put("name",sp_order_name);
+payLoad = Map();
+payLoad.put("attributes",attributeMap);
+payLoad.put("type","files");
+params = Map();
+params.put("data",payLoad);
+headersMap = Map();
+headersMap.put("Accept","application/vnd.api+json");
+resp = invokeurl
+[
+	url :url
+	type :POST
+	parameters:params.toString()
+	headers:headersMap
+	connection:"myconnection"
+];
+if(!resp.get("data").isnull())
+{
+	new_file_id = resp.get("data").get("id");
+	new_file_permalink = resp.get("data").get("attributes").get("permalink");
+	if(new_file_id != "" && new_file_permalink != "")
+	{
+		info new_file_id;
+		info new_file_permalink;
+	}
+}
+data = Map();
+data_param1 = Map();
+att_param1 = Map();
+att_param1.put("name",sp_order_name + " " + zoho.currenttime.tostring("dd/MM/yyyy hh:mm a"));
+data_param1.put("attributes",att_param1);
+data_param1.put("type","files");
+data.put("data",data_param1);
+response = invokeurl
+[
+	url :"https://www.zohoapis.com.au/workdrive/api/v1/files/" + new_file_id
+	type :PATCH
+	parameters:data.toString()
+	headers:headersMap
+	connection:"myconnection"
+];
+
+response = zoho.sheet.getSheets(new_file_id,"myconnection");
+
+ws = response.get("worksheet_names");
+sheet0 = ws.get(0).get("worksheet_name");
+queryData = Map();
+mainlist = list();
+mainmp = Map();
+info sp_created_at;
+sp_created_at = sp_created_at.left(19);
+sp_created_atx = sp_created_at.todateTime("yyyy-MM-dd'T'HH:mm:ss");
+mainlist.add({"Label":"Submitted","Value":sp_created_atx.tostring("dd/MM/yyyy hh:mm a")});
+mainlist.add({"Label":"","Value":""});
+mainlist.add({"Label":"CUSTOMER INFO","Value":""});
+mainlist.add({"Label":"Name","Value":sp_cust_name});
+mainlist.add({"Label":"Email","Value":sp_cust_email});
+mainlist.add({"Label":"Phone","Value":sp_cust_phone});
+mainlist.add({"Label":"","Value":""});
+mainlist.add({"Label":"SHIPPING ADDRESS","Value":""});
+mainlist.add({"Label":"Company","Value":sp_sa_company});
+mainlist.add({"Label":"Name","Value":sp_sa_name});
+mainlist.add({"Label":"Address","Value":sp_sa_add});
+mainlist.add({"Label":"","Value":""});
+mainlist.add({"Label":"Phone","Value":sp_sa_phone});
+mainlist.add({"Label":"","Value":""});
+mainlist.add({"Label":"","Value":""});
+mainlist.add({"Label":"Amount Paid by Customer","Value":""});
+mainlist.add({"Label":"Payment Terms","Value":sp_pt_payment_terms});
+mainlist.add({"Label":"","Value":""});
+mainlist.add({"Label":"Additional Note","Value":sp_note});
+mainlist2 = list();
+mainlist2.add({"Label":sp_financial_status,"Value":""});
+mainlist2.add({"Label":"","Value":""});
+mainlist2.add({"Label":"ORDER INFO","Value":""});
+mainlist2.add({"Label":"Order Name:","Value":sp_order_name});
+mainlist2.add({"Label":"Order Id","Value":sp_order_id});
+mainlist2.add({"Label":"Confirmation No","Value":sp_confirmation_no});
+mainlist2.add({"Label":"","Value":""});
+mainlist2.add({"Label":"BILLING ADDRESS","Value":""});
+mainlist2.add({"Label":"Company","Value":sp_bl_company});
+mainlist2.add({"Label":"Name","Value":sp_bl_name});
+mainlist2.add({"Label":"Address","Value":sp_bl_add});
+mainlist2.add({"Label":"","Value":""});
+mainlist2.add({"Label":"Phone","Value":sp_bl_phone});
+totlist = List();
+totlist.add({"Label":"Subtotal","Value":sp_total_line_items_price});
+totlist.add({"Label":"Discount","Value":sp_current_total_discounts});
+totlist.add({"Label":"Shipping Fee","Value":shfee_shop_amt});
+totlist.add({"Label":"GST","Value":sp_current_total_tax});
+totlist.add({"Label":"TOTAL","Value":sp_current_total_price});
+headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{"Label","Value"},1,2,"myconnection");
+rowline = 2;
+for each  datlist in mainlist
+{
+	headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{datlist.get("Label"),datlist.get("Value")},rowline,2,"myconnection");
+	rowline = rowline + 1;
+}
+headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{" "," "},1,2,"myconnection");
+headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{"Label","Value"},1,6,"myconnection");
+rowline = 2;
+for each  datlist in mainlist2
+{
+	headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{datlist.get("Label"),datlist.get("Value")},rowline,6,"myconnection");
+	rowline = rowline + 1;
+}
+headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{" "," "," "," "," "," "},1,2,"myconnection");
+rowline = 24;
+for each  datlist in sp_li
+{
+	headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{datlist.get("name"),datlist.get("vendor"),datlist.get("sku"),datlist.get("quantity"),datlist.get("price"),datlist.get("price")},rowline,2,"myconnection");
+	rowline = rowline + 1;
+}
+headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{" "," "},1,6,"myconnection");
+for each  datlist in totlist
+{
+	headerline = zoho.sheet.insertCSV(new_file_id,sheet0,{datlist.get("Label"),datlist.get("Value")},rowline,6,"myconnection");
+	rowline = rowline + 1;
+}
+Embody = "Hi Speedy Team, <br><br>";
+Embody = Embody + "Please process new order from shopify.<br><br>";
+Embody = Embody + "Received : " + sp_created_atx.tostring("dd MMM yyyy hh:mm a") + "<br><br>";
+Embody = Embody + "Name : " + sp_cust_name + "<br>";
+//Embody = Embody + "Company : " + ifnull(main_job_company,"") + "<br>";
+Embody = Embody + "Email : " + sp_cust_email + "<br>";
+Embody = Embody + "Phone : " + sp_cust_phone + "<br>";
+Embody = Embody + "Shipping Address : " + sp_sa_add + "<br><br>";
+Embody = Embody + "Billing Address : " + sp_bl_add + "<br>";
+Embody = Embody + "Shopify Order Name : " + sp_order_name + "<br><br>";
+Embody = Embody + "Total Qty : " + total_qty + "<br>";
+Embody = Embody + "Total Amount : " + "" + "<br>";
+Embody = Embody + "PAYMENT STATUS : " + sp_financial_status.toUpperCase() + "<br><br>";
+Embody = Embody + "Order Data : " + new_file_permalink + "?sheet=Summary&range=A1" + "<br>";
+Embody = Embody + "Shopify Status Link : " + sp_orderstatus_url + "<br>";
+Embody = Embody + "Shopify Admin Link : https://admin.shopify.com/store/xxx/orders/" + sp_order_id + "<br><br>";
+Embody = Embody + "* This is a system generated email from Zoho c/o Mau. Have a great day!";
+sendmail
+[
+	from :zoho.adminuserid
+	to :"myemail@gmail.com,sales@spb.com.au"
+	subject :"TEST NEW SHOPIFY " + sp_order_name + " " + sp_created_atx.tostring("dd MMM yyyy hh:mm a")
+	message :Embody
+]
+return "";
