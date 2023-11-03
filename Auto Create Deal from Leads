@@ -1,4 +1,3 @@
-//leadid = "14699000003275008";
 leadcrm = zoho.crm.getRecordById("Leads",leadid);
 info leadcrm;
 /*************************/
@@ -46,7 +45,7 @@ if(newcontid != "")
 	notetext = "Contact Created from Leads " + leadid;
 	notesMap = {"Parent_Id":newcontid,"Note_Title":"New Record","Note_Content":notetext,"$se_module":"Contacts"};
 	responsenote = zoho.crm.createRecord("Notes",notesMap);
-	notetext = "New Contact Record has been created. Contact Id " + newcontid + " https://crm.zoho.com.au/crm/org7000171204/tab/Contacts/" + newcontid;
+	notetext = "New Contact Record has been created. Contact Id " + newcontid + " https://crm.zoho.com.au/crm/orgxxx/tab/Contacts/" + newcontid;
 	notesMap = {"Parent_Id":leadid,"Note_Title":"Contact Record Created","Note_Content":notetext,"$se_module":"Leads"};
 	responsenote = zoho.crm.createRecord("Notes",notesMap);
 }
@@ -98,12 +97,11 @@ if(newcontid != "")
 		notetext = "Job Created from Leads " + leadid;
 		notesMap = {"Parent_Id":newdealid,"Note_Title":"New Record","Note_Content":notetext,"$se_module":"Deals"};
 		responsenote = zoho.crm.createRecord("Notes",notesMap);
-		notetext = "New Job Record has been created. Job Id " + newdealid + " https://crm.zoho.com.au/crm/org7000171204/tab/Potentials/" + newdealid;
+		notetext = "New Job Record has been created. Job Id " + newdealid + " https://crm.zoho.com.au/crm/orgxxx/tab/Potentials/" + newdealid;
 		notesMap = {"Parent_Id":leadid,"Note_Title":"Job Record Created","Note_Content":notetext,"$se_module":"Leads"};
 		responsenote = zoho.crm.createRecord("Notes",notesMap);
-		url = "https://crm.zoho.com.au/crm/org7000171204/tab/Potentials/" + newdealid;
+		url = "https://crm.zoho.com.au/crm/orgxxx/tab/Potentials/" + newdealid;
 		openUrl(url,"new window");
 	}
 }
-//url = "https://crm.zoho.com.au/crm/org7000171204/tab/Potentials/" + newdealid;
-//openUrl(url,"new window");
+
