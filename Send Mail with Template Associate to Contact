@@ -1,0 +1,112 @@
+contid = "6067254000000456346";
+mergeDocumentId = "eia9oadb651069c844030b3c31665ff6787df";
+emailTemplateId = "6067254000000466003";
+//Get the Deal Record
+contMap = zoho.crm.getRecordById("Contacts",contid);
+//Get Deal Variables
+Full_Name = contMap.get("Full_Name");
+Account_Name = contMap.getjson("Account_Name").get("name");
+Vendor_Name = contMap.getjson("Vendor_Name").get("name");
+Date_of_Birth = contMap.get("Date_of_Birth");
+Mobile = contMap.get("Mobile");
+First_Name = contMap.get("First_Name");
+Email = contMap.get("Email");
+
+Dealslist = List();
+related_deal = zoho.crm.getRelatedRecords("Deals", "Contacts", contid);
+for each rel in related_deal
+{
+	info rel.get("id");
+	deal_rec= zoho.crm.getRecordById("Deals", rel.get("id"));
+	info deal_rec;
+	dealmp = map();
+	dealmp.put("Deals.Deal_Name", deal_rec.get("Deal_Name"));
+	dealmp.put("Deals.Amount",deal_rec.get("Amount"));
+	dealmp.put("Deals.Account_Name",deal_rec.get("Account_Name").get("name"));
+	dealmp.put("Deals.Stage",deal_rec.get("Stage"));
+	Dealslist.add(dealmp);
+}
+
+
+if(!isnull(Email))
+	{
+		documentName = "Proposal Merge Document " + zoho.currenttime;
+
+		mergeData = Map();
+		mergeData.put("Full_Name",Full_Name);
+		mergeData.put("Account_Name",Account_Name);
+		mergeData.put("Vendor_Name",Vendor_Name);
+		mergeData.put("Date_of_Birth",Date_of_Birth);
+		mergeData.put("Mobile",Mobile);
+		mergeData.put("First_Name",First_Name);
+		mergeData.put("Email",Email);
+		mergeData.put("Deals",Dealslist);
+		
+		mergeValues = Map();
+		dataMap = Map();
+		dataMap.put("data",mergeData);
+		mergeValues.put("merge_data",dataMap);
+		//Merge the Document
+		mergedPDF = zoho.writer.mergeAndDownload(mergeDocumentId,"pdf",mergeValues,"myconnection");
+		//info mergedPDF;
+		//Rename Document to PDF
+		mergedPDF.setFileName(documentName + ".pdf");
+		//Save document to the Deal Record
+		saveAttachment = zoho.crm.attachFile("Contacts",contid,mergedPDF);
+		//info saveAttachment;
+		//Get the Attachment ID
+		attachmentId = saveAttachment.get("details").get("id");
+		//Get the Attachment Zoho File Id by searching all Deal Attachments
+		dealAttachments = zoho.crm.getRelatedRecords("Attachments","Contacts",contid);
+		//info dealAttachments;
+		for each  attachment in dealAttachments
+		{
+			//Check for a matching attachment Id
+			if(attachment.get("id") = attachmentId)
+			{
+				//Get zoho file Id
+				fileId = attachment.get("$file_id");
+				if(!isnull(fileId))
+				{
+					//Prepare Send Email Settings
+					dataMap = Map();
+					dataList = List();
+					//From
+					dataMap.put("from",{"email":"ronnelpruna@gmail.com"});
+					//
+					toList = List();
+					toList.add({"email":Email});
+					dataMap.put("to",toList);
+					//
+					dataMap.put("template",{"id":emailTemplateId});
+					//
+					attachmentList = List();
+					attachmentList.add({"id":fileId});
+					dataMap.put("attachments",attachmentList);
+					//
+					dataMap.put("org_email",false);
+					dataList.add(dataMap);
+					//
+					paramMap = Map();
+					paramMap.put("data",dataList);
+					//
+					//Be sure to update your URL Based on your Data Centre
+					sendDealEmail = invokeurl
+					[
+						url :"https://www.zohoapis.com/crm/v3/Contacts/" + contid + "/actions/send_mail"
+						type :POST
+						parameters:paramMap.toString()
+						connection:"myconnection"
+					];
+					info sendDealEmail;
+					//What you want to see after the button is pressed inside the return statement.
+					info "Proposal Created & Sent to Contact Email: " + Email;
+				}
+				else
+				{
+					//Log Error as no file has been found with matching ID
+					info "No Attachment Found with matching Id";
+				}
+			}
+		}
+	}
