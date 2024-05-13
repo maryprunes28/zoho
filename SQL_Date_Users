@@ -1,0 +1,46 @@
+SELECT DISTINCT
+		 a."Ord" as "Order",
+		 a."Date" as "Date",
+		 date_format(a."Date", '%a - dd %b') as "Day Name"
+FROM (	SELECT
+			 DATE_SUB(current_date(), INTERVAL (1) DAY) as "Date",
+			 1 as "Ord"
+	FROM  "Users" 
+	UNION ALL
+ 	SELECT
+			 DATE_SUB(current_date(), INTERVAL (2) DAY) as "Date",
+			 2 as "Ord"
+	FROM  "Users" 
+	UNION ALL
+ 	SELECT
+			 DATE_SUB(current_date(), INTERVAL (3) DAY) as "Date",
+			 3 as "Ord"
+	FROM  "Users" 
+	UNION ALL
+ 	SELECT
+			 DATE_SUB(current_date(), INTERVAL (4) DAY) as "Date",
+			 4 as "Ord"
+	FROM  "Users" 
+	UNION ALL
+ 	SELECT
+			 DATE_SUB(current_date(), INTERVAL (5) DAY) as "Date",
+			 5 as "Ord"
+	FROM  "Users" 
+	UNION ALL
+ 	SELECT
+			 DATE_SUB(current_date(), INTERVAL (6) DAY) as "Date",
+			 6 as "Ord"
+	FROM  "Users" 
+	UNION ALL
+ 	SELECT
+			 DATE_SUB(current_date(), INTERVAL (7) DAY) as "Date",
+			 7 as "Ord"
+	FROM  "Users" 
+ 
+ 
+ 
+ 
+ 
+ 
+) a 
+ORDER BY a."Ord" ASC 
