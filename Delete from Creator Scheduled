@@ -1,0 +1,32 @@
+currentDate = zoho.currentdate;
+dateFiveDaysAgo = currentDate.addDay(-5);
+scanrecord = Scan_Code[Added_Time <= dateFiveDaysAgo];
+ctr = 1;
+strlist = "";
+for each  rec in scanrecord
+{
+	strlist = strlist + ctr + ") " + rec.ID + " / " + rec.Added_Time + " / " + rec.Scan_Barcode + "<br>";
+	info ctr + ") " + rec.ID + " / " + rec.Added_Time + " / " + rec.Scan_Barcode;
+	ctr = ctr + 1;
+}
+delete from Scan_Code[Added_Time <= dateFiveDaysAgo];
+emailSubject = "Deleted Scans from Creator " + zoho.currentdate;
+emailMessage = "<div>" + strlist + "</div>";
+recipient = "mmmz@gmail.com";
+try 
+{
+	info "this will try to send the email from " + zoho.adminuserid;
+	info emailMessage;
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :recipient
+		subject :emailSubject
+		message :emailMessage
+	]
+	info "Email sent successfully.";
+}
+catch (e)
+{
+	info "Error sending email: " + e.message;
+}
