@@ -1,0 +1,63 @@
+void automation.cascadelasttouchallmods(Int contactid,Int callid)
+{
+dateNow = now.toDate();
+info dateNow;
+zcalls = zoho.crm.getRecordById("Calls",callid.tolong());
+callownerid = zcalls.get("Owner").get("id");
+// contactid must be available otherwise nothing will happen
+try 
+{
+	if(contactid != null)
+	{
+		updmap = Map();
+		updmap.put("Last_Touch",dateNow);
+		// find details of contact related to call
+		zcontacts = zoho.crm.getRecordById("Contacts",contactid.tolong());
+		if(zcontacts.get("Account_Manager") != null && zcontacts.get("Account_Manager") != "")
+		{
+			contactamid = zcontacts.get("Account_Manager").get("id");
+			if(callownerid == contactamid)
+			{
+				// update contacts related to call		
+				updateContact = zoho.crm.updateRecord("Contacts",contactid.tolong(),updmap);
+				if(updateContact.containKey("Modified_Time"))
+				{
+					info "Contact : " + contactid + " has been updated";
+				}
+				//find related company from contacts			
+				if(zcontacts.get("Account_Name") != null && zcontacts.get("Account_Name") != "")
+				{
+					accountid = zcontacts.get("Account_Name").get("id");			
+					updatecompany = zoho.crm.updateRecord("Accounts",accountid.tolong(),updmap);
+					if(updatecompany.containKey("Modified_Time"))
+					{
+						info "Company : " + accountid + " has been updated";
+					}
+					//find related opportunities from Company	
+					relateddeals = zoho.crm.getRelatedRecords("Deals","Accounts",accountid.tolong());
+					for each  rec in relateddeals
+					{
+						dealid = rec.get("id");
+						updateOpportunity = zoho.crm.updateRecord("Deals",dealid.tolong(),updmap);
+						if(updateOpportunity.containKey("Modified_Time"))
+						{
+							info "Deal : " + dealid + " has been updated";
+						}
+					}
+				}
+			}
+		}
+	}
+}
+catch (e)
+{
+	info e;
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"test@email.com"
+		subject :"[Zoho CRM - Custom Alert] Production custom function error: cascadelasttouchallmods"
+		message :"<p>Error Info: " + e + "</p>"
+	]
+}
+}
