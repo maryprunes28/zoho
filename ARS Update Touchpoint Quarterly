@@ -1,0 +1,85 @@
+void schedule.fillstarttouch_quarterly()
+{
+currdate = Now;
+//currdate = "01/01/2025".todate();
+try 
+{
+	if(currdate.getmonth() in {1,4,7,10} && currdate == currdate.toStartOfMonth())
+	{
+		info "Qualified to run today";
+		newdate = null;
+		if(currdate.getMonth() in {1,2,3})
+		{
+			var1 = "01/01/" + currdate.getYear();
+			newdate = var1.toDate();
+			info newdate;
+		}
+		else if(currdate.getMonth() in {4,5,6})
+		{
+			var1 = "04/01/" + currdate.getYear();
+			newdate = var1.toDate();
+			info newdate;
+		}
+		else if(currdate.getMonth() in {7,8,9})
+		{
+			var1 = "07/01/" + currdate.getYear();
+			newdate = var1.toDate();
+			info newdate;
+		}
+		else if(currdate.getMonth() in {10,11,12})
+		{
+			var1 = "10/01/" + currdate.getYear();
+			newdate = var1.toDate();
+			info newdate;
+		}
+		queryMap = Map();
+		attempt = " ";
+		retry_loop = attempt.leftPad(9).replaceAll(" ",",");
+		retry_attempt = 0;
+		combined_data = List();
+		info retry_loop;
+		for each  retry in retry_loop
+		{
+			queryMap.put("select_query","select id from Contacts where Touchpoint = 'Quarterly' limit " + retry_attempt * 100 + ", 100");
+			coql_responses = invokeurl
+			[
+				url :"https://www.zohoapis.com/crm/v7/coql"
+				type :POST
+				parameters:queryMap.toString()
+				connection:"arsconnector"
+			];
+			updateList = List();
+			for each  resp in coql_responses.get("data")
+			{
+				recordmap = Map();
+				recordmap.put("id",resp.get("id"));
+				recordmap.put("Start_of_Touchpoint",newdate);
+				updateList.add(recordmap);
+			}
+			if(!updateList.isempty())
+			{
+				quarterlycontacts = zoho.crm.bulkUpdate("Contacts",updateList);
+				info quarterlycontacts;
+			}
+			if(coql_responses.get("info").get("more_records") == false)
+			{
+				break;
+			}
+			else
+			{
+				retry_attempt = retry_attempt + 1;
+			}
+		}
+	}
+}
+catch (e)
+{
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"test@email.com"
+		subject :"[Zoho CRM - Custom Alert] Auto-mail triggered: Sched Task Error."
+		message :"<h1>Catastrophic Error!</h1><br><p>Error: " + e + "</p><br><p>Found in Sechd Task: 'Update Start of Touchpoint Quarterly'</p>"
+	]
+}
+}
