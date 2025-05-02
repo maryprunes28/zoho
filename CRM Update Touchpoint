@@ -1,0 +1,65 @@
+void automation.meetingtouchpointupdated(Int id)
+{
+try 
+{
+	ztask = zoho.crm.getRecordById("Events",id.tolong());
+	tp = {"Weekly","Monthly","Quarterly","Every 2 Weeks (Monday)"};
+	updated = List();
+	if(ztask.containKey("Who_Id") && ztask.get("Who_Id") != null)
+	{
+		contid = ztask.get("Who_Id").get("id");
+		getcrm = zoho.crm.getRecordById('Contacts',contid.tolong());
+		//info getcrm.get("Touchpoint");
+		touchpoint = getcrm.get("Touchpoint");
+		if(tp.contains(touchpoint))
+		{
+			updmap = Map();
+			updmap.put("Touchpoint_Updated",True);
+			updmap.put("Last_Touchpoint",zoho.currentdate);
+			updcrm = zoho.crm.updateRecord('Contacts',contid.tolong(),updmap);
+			if(updcrm.containKey("Modified_Time"))
+			{
+				updated.add(contid);
+			}
+		}
+	}
+	participants = ztask.get("Participants");
+	for each  rec in participants
+	{
+		if(rec.get("type") == "contact")
+		{
+			contid = rec.get("participant");
+			getcrm = zoho.crm.getRecordById('Contacts',contid.tolong());
+			touchpoint = getcrm.get("Touchpoint");
+			if(tp.contains(touchpoint))
+			{
+				updmap = Map();
+				updmap.put("Touchpoint_Updated",True);
+				updmap.put("Last_Touchpoint",zoho.currentdate);
+				updcrm = zoho.crm.updateRecord('Contacts',contid.tolong(),updmap);
+				if(updcrm.containKey("Modified_Time"))
+				{
+					updated.add(contid);
+				}
+			}
+		}
+	}
+	if(!updated.isEmpty())
+	{
+		notecontent = "Touchpoint of Participant and Contacts records related to this meeting has been Updated";
+		notesMap = {"Parent_Id":id.tolong(),"Note_Title":"Touchpoint Updated","Note_Content":notecontent,"$se_module":"Events"};
+		responsenote = zoho.crm.createRecord("Notes",notesMap);
+		info responsenote;
+	}
+}
+catch (e)
+{
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"test@email.com"
+		subject :"[Zoho CRM - Custom Alert] Auto-mail triggered: Workflow Error"
+		message :"<h1>Catastrophic Error!</h1><br><p>Error: " + e + "</p><br><p>Found in Workflow : 'Update Touchpoint on Meeting Completed'</p>"
+	]
+}
+}
