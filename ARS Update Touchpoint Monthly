@@ -1,0 +1,59 @@
+void schedule.updatestartpointmonthly()
+{
+currdate = Now;
+//currdate = "01/01/2025".todate();
+try 
+{
+	info "Running to Update to Start of Month";
+	var1 = currdate.getMonth() + "/01/" + currdate.getYear();
+	newdate = var1.toDate();
+	queryMap = Map();
+	attempt = " ";
+	retry_loop = attempt.leftPad(9).replaceAll(" ",",");
+	retry_attempt = 0;
+	combined_data = List();
+	info retry_loop;
+	for each  retry in retry_loop
+	{
+		queryMap.put("select_query","select id from Contacts where Touchpoint = 'Monthly' limit " + retry_attempt * 100 + ", 100");
+		coql_responses = invokeurl
+		[
+			url :"https://www.zohoapis.com/crm/v7/coql"
+			type :POST
+			parameters:queryMap.toString()
+			connection:"arsconnector"
+		];
+		updateList = List();
+		for each  resp in coql_responses.get("data")
+		{
+			recordmap = Map();
+			recordmap.put("id",resp.get("id"));
+			recordmap.put("Start_of_Touchpoint",newdate);
+			updateList.add(recordmap);
+		}
+		if(!updateList.isempty())
+		{
+			quarterlycontacts = zoho.crm.bulkUpdate("Contacts",updateList);
+			info quarterlycontacts;
+		}
+		if(coql_responses.get("info").get("more_records") == false)
+		{
+			break;
+		}
+		else
+		{
+			retry_attempt = retry_attempt + 1;
+		}
+	}
+}
+catch (e)
+{
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"test@email.com"
+		subject :"[Zoho CRM - Custom Alert] Auto-mail triggered: Sched Task Error."
+		message :"<h1>Catastrophic Error!</h1><br><p>Error: " + e + "</p><br><p>Found in Sched Task: 'Update Start of Touchpoint Monthly'</p>"
+	]
+}
+}
