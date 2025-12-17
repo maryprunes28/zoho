@@ -1,0 +1,19 @@
+//---------------------------------------------------------------
+if (value)
+{
+    clientID = value.id;
+    //get Customer from Properties
+    var customerFromProDetails = ZDK.Page.getField('Account').getValue();
+    if (customerFromProDetails) {
+        customerFromProID = customerFromProDetails.id;
+        var contactData = ZDK.Apps.CRM.Contacts.fetchById(clientID);
+        //get Customer from Contact
+        var customerFromContact = contactData._Account_Name_Lookup_Id
+        if (!customerFromContact) {
+            //Assing the  Customer
+            contactData.Account_Name_Lookup_Id = customerFromProID;
+            var response = ZDK.Apps.CRM.Contacts.updateById(contactData, clientID);
+        }
+    }
+}
+//---------------------------------------------------------------    
