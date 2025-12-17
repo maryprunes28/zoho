@@ -1,0 +1,91 @@
+
+/** 
+ * log("sample logging statement") --> can be used to print any data in the browser console.
+ * ZDK module can be used for customising the UI and other functionalities.
+ * return false to prevent <SAVE> action
+**/
+
+const contactField = ZDK.Page.getField('Contact');
+const customerField = ZDK.Page.getField('Customer');
+const propertyField = ZDK.Page.getField('Property');
+const jobField = ZDK.Page.getField('Job');
+
+if (field_name == 'Phone') {
+    const phone = ZDK.Page.getField('Phone').getValue();
+    if (!phone) {
+        return;
+    }
+    const contacts = ZDK.Apps.CRM.Contacts.searchByPhone(phone);
+    if (!contacts.length) {
+        contactField.setValue(null);
+        return;
+    }
+    fillContact(contacts[0], true);
+}
+
+if (field_name == 'Property') {
+    const propertyVal = propertyField.getValue();
+    if (!propertyVal) {
+        return;
+    }
+    fillProperty(propertyVal.id, false);
+}
+
+if (field_name == 'Job') {
+    const jobVal = jobField.getValue();
+    if (!jobVal) {
+        return;
+    }
+    const job = ZDK.Apps.CRM.Deals.fetchById(jobVal.id);
+    if (!job) {
+        return;
+    }
+    fillProperty(job.Property_Lookup_Id, false);
+}
+
+function fillProperty(propertyId, force) {
+    var response = ZDK.Apps.CRM.Connections.invoke("zoho_crm", "https://www.zohoapis.com/crm/v8/Properties/"+propertyId, "GET",1,{},{});
+    const property = response.details.statusMessage.data[0];
+    
+    if (force || !propertyField.getValue()) {
+        propertyField.setValue(property ? { id: property.id, name: property.Name } : null);
+    }
+    ZDK.Page.getField('Cab_Count').setValue(property ? property.Property_Total_Active_Elevators : null);
+        
+    if (property) {
+        fillContact(property.Property_Contact(), force);
+    }
+}
+
+function fillContact(contact, force) {
+    if (force || !contactField.getValue()) {
+        contactField.setValue(contact ? { id: contact.id, name: contact.Full_Name } : null);
+    }
+    if (contact) {
+        fillCustomer(contact.Account_Name(), force);
+    }
+}
+
+function fillCustomer(account, force) {
+    if (force || !customerField.getValue()) {
+        customerField.setValue(account ? { id: account.id, name: account.Account_Name } : null);
+    }
+}
+
+if (field_name == 'Entrapment' || field_name == 'Cab_Count') {
+    const entrapmentVal = entrapmentField.getValue();
+    const cabCountVal = cabCountField.getValue();
+    if (!entrapmentVal) {
+        return;
+    }
+
+    if (entrapmentVal == "Yes") {
+        importanceField.setValue('Critical');
+    } else if (entrapmentVal == "No" && cabCountVal == 1) {
+        importanceField.setValue('High');
+    } else if (date.getHours() > 15 || (date.getHours() == 15 && date.getMinutes() >= 30)) {
+        importanceField.setValue('Next Morning');
+    } else {
+        importanceField.setValue('Normal');
+    }
+}
