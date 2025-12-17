@@ -1,0 +1,30 @@
+//---------------------------------------------------------------
+if (value)
+{
+    //get Customer from Properties
+    var customerFromProDetails = ZDK.Page.getField('Account').getValue();
+    if (customerFromProDetails)
+    {
+        clientName = value;
+        var clientList = ZDK.Apps.CRM.Contacts.searchByCriteria("Full_Name:equals:" + clientName);
+
+        var contactWithoutAccount = null;
+        // Find the first contact without an associated account
+        for (var i = 0; i < clientList.length; i++) {
+            if (!clientList[i]._Account_Name_Lookup_Id) {
+                contactWithoutAccount = clientList[i];
+                break;
+            }
+        }
+        //Assign Customer 
+        if (contactWithoutAccount)
+        {
+            customerFromProID = customerFromProDetails.id;
+            clientID = contactWithoutAccount.id;
+            var contactData = ZDK.Apps.CRM.Contacts.fetchById(clientID);
+            contactData.Account_Name_Lookup_Id = customerFromProID;
+            var response = ZDK.Apps.CRM.Contacts.updateById(contactData, clientID);
+        } 
+    }
+}
+//---------------------------------------------------------------    
