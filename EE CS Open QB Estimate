@@ -1,0 +1,30 @@
+ZOHO.CRM.UI.Events.on("Deals.Detail.onLoad", function(context) {
+
+    // Confirm the script runs
+    console.log("Client Script Loaded for Deals");
+
+    // Get the Stage field
+    const stageField = ZDK.Page.getField("Stage");
+
+    if (!stageField) {
+        console.log("Stage field not found in layout");
+        return;
+    }
+
+    // Listen to Stage value changes
+    stageField.onChange(function(oldValue, newValue) {
+        console.log("Stage changed from:", oldValue, "to:", newValue);
+
+        // If new stage contains 'Estimate'
+        if (newValue && newValue.toLowerCase().includes("estimate")) {
+
+            // Show quick confirmation (optional)
+            ZDK.Client.showAlert("Opening QuickBooks Estimate...");
+
+            // Wait a bit for UI to update, then open new tab
+            setTimeout(function() {
+                ZDK.Client.openUrl("https://qbo.intuit.com/app/estimate", true);
+            }, 800);
+        }
+    });
+});
