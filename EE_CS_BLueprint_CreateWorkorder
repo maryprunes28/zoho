@@ -1,0 +1,25 @@
+if ((transition.name === 'Create Work Order') || (transition.name === "Re-Attempt to Create Work Order"))
+{
+    var zTickets = ZDK.Apps.CRM.Tickets.fetchById($Page.record_id);
+    zTickets.Create_Result = null;          
+    var updatezTickets = zTickets.__update();
+
+    ZDK.Client.showLoader({type:'page', template:'spinner', message:'Creating Work Order...' });
+    ZDK.Apps.CRM.Functions.execute("bpcreateworkorder", { "id_daily": $Page.record_id });
+    ZDK.Client.hideLoader();
+    var zTickets2 = ZDK.Apps.CRM.Tickets.fetchById($Page.record_id);
+    var crval2 = zTickets2.Create_Result;    
+    var newfsmid = zTickets2.FE_Number; 
+    if (crval2.startsWith("ERROR:")) 
+    {
+        //ZDK.Client.showMessage(crval2, { type: 'success' });
+        //ZDK.Client.showAlert(crval2);
+        ZDK.Client.showMessage(crval2, {type: 'error'});
+    }         
+    else if (crval2 == "Complete") 
+    {
+        var fsmlink = "https://fsm.zoho.com/fsm/xxxxxx#/tab/Work_Orders/" + newfsmid;
+        var successmsg = "SUCCESS : Create Work Order succeeded. Visit link [click here](" + fsmlink + ")";
+        ZDK.Client.showMessage(successmsg, {type: 'success'});
+    }     
+}
