@@ -1,0 +1,16 @@
+//----------------------------------------------------------------------
+if (value) {
+    let zoneDetails = ZDK.Apps.CRM.Zones.fetchById(value.id);
+    let primaryTechnicianId = zoneDetails.Main_Technician_Lookup_Id;
+
+    if (primaryTechnicianId) {
+        let techDetails = ZDK.Apps.CRM.Logixonescheduler__Operators.fetchById(primaryTechnicianId);
+        let techName = techDetails.Name;
+        let assign = ZDK.Page.getField('Assigned_Tech').setValue({ id: primaryTechnicianId, name: techName });
+    } else {
+        let assign = ZDK.Page.getField('Assigned_Tech').setValue(null);
+    }
+} else {
+   let assign = ZDK.Page.getField('Assigned_Tech').setValue(null);
+}
+//----------------------------------------------------------------------
