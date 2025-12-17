@@ -1,0 +1,31 @@
+if (!row_data.Elevator && row_data.Device_Number && row_data.Dev_Type) {
+
+    let deviceID = row_data.Device_Number;
+    let devType = row_data.Dev_Type
+    let propertydata = ZDK.Page.getField('Property').getValue();
+    let propertyId = propertydata.id;
+    //Create new Elevator
+    let params = {
+        device_id: deviceID,
+        dev_type: devType,
+        property_id: propertyId,
+        job_id: $Page.record_id
+    };
+    functionNewElevator = ZDK.Apps.CRM.Functions.execute("create_elevator_from_client_script", params);
+    //Add the new elevator to the row.
+    let output = functionNewElevator._details?.output;
+
+    if (output && !output.includes("error")) {
+        let newElevatorId = output;
+        const row = ZDK.Page.getSubform('Serviced_Elevators').getRow(index)
+        row.setValues({
+            "Elevator": {
+                "id": newElevatorId,
+                "name": deviceID
+            }
+        });
+    }
+}
+
+
+
