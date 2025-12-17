@@ -1,0 +1,15 @@
+ //ZDK.Client.showMessage('Thanks for approving! The *Scheduled Maintenance* in FSM will be set up in 5 minutes.', {type: 'success'});
+if (value == "Approved Complete") {
+    let subformData = ZDK.Page.getField("MISC_ELEVATOR_INFORMATION").getValue();
+
+    // Check if subform has at least 1 row
+    if (subformData && subformData.length > 0) {
+
+        ZDK.Client.showMessage('Thanks for approving! The *Scheduled Maintenance* in FSM will be set up in 5 minutes.', {type: 'success'});
+
+    } else
+    {   
+        ZDK.Client.showMessage('Atleat one CAB must be provided to Approve', { type: 'error' });
+        return false;
+    }
+}
